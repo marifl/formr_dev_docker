@@ -1,0 +1,116 @@
+version: "3.7"
+x-logging: &default-logging
+  options:
+    max-size: "100m"
+    max-file: "5"
+  driver: json-file
+services:
+
+  # formr.org application (Configure in etc/formr/apache.conf and formr_app/formr/config/settings.php)
+
+  formr_app:
+    build:
+      context: formr_app
+      dockerfile: Dockerfile
+    container_name: formr_app
+    hostname: formr_app
+    environment:
+      - TZ=${TIMEZONE}
+      - FORMR_TAG=${FORMR_TAG} #required
+      - FORMR_APACHE_CONFIG=${FORMR_APACHE_CONFIG}
+#    links:
+#      - formr_db
+    volumes:
+      - ./formr_app/formr:/formr
+      - ./formr_app/apache/sites-enabled:/etc/apache2/sites-enabled/ #apache vhost conf
+    restart: unless-stopped
+    depends_on:
+      - formr_db
+      - opencpu
+    ports:
+      - "80:80"
+    networks:
+      - all
+    logging: *default-logging
+
+
+  # mysql database (Configure in formr_app/formr/config/settings.php)
+
+  formr_db:
+    image: mariadb:latest
+    container_name: formr_db
+    hostname: formr_db
+    env_file:
+      - '.env'
+    expose:
+      - "3306"
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+      - ./mysql/dbinitial:/docker-entrypoint-initdb.d
+
+    # (this is just an example, not intended to be a production configuration)
+    command: >
+      bash -c "
+      /usr/local/bin/docker-entrypoint.sh  --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci"
+    restart: always
+    networks:
+      - all
+    logging: *default-logging
+  
+  formrmailqueue:
+    build:
+      context: php_daemon
+      dockerfile: Dockerfile
+    container_name: formrmailqueue
+    environment:
+      - TZ=${TIMEZONE}
+    volumes:
+      - ./formr_app/formr:/formr
+    working_dir: /formr
+    command: php bin/queue.php -t Email
+    restart: always
+    depends_on:
+      - formr_app
+    networks:
+      - all
+
+  formrsessionqueue:
+    build:
+      context: php_daemon
+      dockerfile: Dockerfile
+    container_name: formrsessionqueue
+    environment:
+      - TZ=${TIMEZONE}
+    volumes:
+      - ./formr_app/formr:/formr
+    working_dir: /formr
+    command: php bin/queue.php -t UnitSession
+    restart: always
+    depends_on:
+      - formr_app
+    networks:
+      - all
+
+  opencpu:
+    build:
+      context: opencpu
+      dockerfile: Dockerfile
+    container_name: opencpu
+    hostname: opencpu
+    volumes:
+#      - ./opencpu/opencpu_library:/usr/local/lib/R/site-library
+      - ./opencpu/conf/server.conf:/etc/opencpu/server.conf
+      - ./opencpu/conf/server.conf.d:/etc/opencpu/server.conf.d
+    environment:
+      - TZ=${TIMEZONE}
+    ports:
+      - "8080:80"
+    networks:
+      - all
+    restart: always
+    logging: *default-logging
+
+networks:
+  all:
+    driver: bridge
+    name: all
