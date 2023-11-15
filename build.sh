@@ -11,7 +11,7 @@ find_replace_in_file() {
   echo $matching_line
   # If the matching line exists, replace it with the new line
   if [ ! -z "$matching_line" ]; then
-      sudo sed -i '' "${matching_line}s#.*#$replace#" $filename
+      sudo sed -i'' "${matching_line}s#.*#$replace#" $filename
   fi
 }
 

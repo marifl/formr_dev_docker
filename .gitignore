@@ -1,7 +1,6 @@
 .env
 !.gitkeep
 formr_app/formr
-docker-compose.yml
 mysql/data/*
 mysql/dbinitial/*
 mysql/encryption/*
