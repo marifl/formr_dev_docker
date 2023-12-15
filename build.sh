@@ -78,7 +78,7 @@ then
     echo "Waiting for formr_db to start running "
     sleep 2
     done
-    sudo docker exec -i formr_db sh -c "exec mysql -uroot -p${MARIADB_ROOT_PASSWORD}" < mysql/dbinitial/schema.sql
+    sudo docker exec -i formr_db sh -c "exec mariadb -uroot -p${MARIADB_ROOT_PASSWORD}" < mysql/dbinitial/schema.sql
 fi
 
 sudo docker compose up -d formr_db  
