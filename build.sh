@@ -61,7 +61,7 @@ find_replace_in_file $formr_config "'database'\s*=>\s*'database'" "\t'database' 
 find_replace_in_file $formr_config "'encoding'\s*=>\s*" "\t'encoding' => 'utf8mb4',"
 
 find_replace_in_file $formr_config "'domain'\s=>\s'.formr.org'" "\t'domain' => '${FORMR_DOMAIN}',"
-find_replace_in_file $formr_config "'public_url'\s=>\s'https://public.opencpu.org'" "\t'public_url' => 'http://${OPENCPU_DOMAIN}',"
+find_replace_in_file $formr_config "'public_url'\s=>" "\t'public_url' => 'http://${OPENCPU_DOMAIN}',"
 
 find_replace_in_file $formr_config "'protocol'\s=>" "'protocol' => 'http://',"
 find_replace_in_file $formr_config "use_study_subdomains" "\$settings['use_study_subdomains'] = false;"
