@@ -8,7 +8,7 @@ find_replace_in_file() {
     search=$2
     replace=$3
     matching_line=$(grep -n -m 1 -h -E $search $filename | cut -d: -f1)
-    echo $matching_line
+    echo "searched $filename, replaced $search, on line $matching_line with $replace"
     # If the matching line exists, replace it with the new line
     if [ ! -z "$matching_line" ]; then
         # Use a backup extension, e.g., .bak
@@ -63,7 +63,7 @@ find_replace_in_file $formr_config "'encoding'\s*=>\s*" "\t'encoding' => 'utf8mb
 find_replace_in_file $formr_config "'domain'\s=>\s'.formr.org'" "\t'domain' => '${FORMR_DOMAIN}',"
 find_replace_in_file $formr_config "'public_url'\s=>\s'https://public.opencpu.org'" "\t'public_url' => 'http://${OPENCPU_DOMAIN}',"
 
-find_replace_in_file $formr_config "'protocol' =>" "'protocol' => 'http://',"
+find_replace_in_file $formr_config "'protocol'\s=>" "'protocol' => 'http://',"
 find_replace_in_file $formr_config "use_study_subdomains" "\$settings['use_study_subdomains'] = false;"
 find_replace_in_file $formr_config "doc_root" "		'doc_root' => 'localhost/',"
 find_replace_in_file $formr_config "study_domain" "		'study_domain' => 'localhost/',"
