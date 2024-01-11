@@ -4,15 +4,18 @@ err(){
 }
 
 find_replace_in_file() {
-  filename=$1
-  search=$2
-  replace=$3
-  matching_line=$(grep -n -m 1 -h -E $search $filename | cut -d: -f1)
-  echo $matching_line
-  # If the matching line exists, replace it with the new line
-  if [ ! -z "$matching_line" ]; then
-      sudo sed -i'' "${matching_line}s#.*#$replace#" $filename
-  fi
+    filename=$1
+    search=$2
+    replace=$3
+    matching_line=$(grep -n -m 1 -h -E $search $filename | cut -d: -f1)
+    echo $matching_line
+    # If the matching line exists, replace it with the new line
+    if [ ! -z "$matching_line" ]; then
+        # Use a backup extension, e.g., .bak
+        sudo sed -i.bak "${matching_line}s#.*#$replace#" $filename
+        # Remove the backup file
+        sudo rm "${filename}.bak"
+    fi
 }
 
 if [[ ! -f ".env" || ! -f "docker-compose.yml" ]]; then
@@ -23,7 +26,7 @@ fi
 source .env
 
 # Docker compose up formr_app
-if [ $( sudo docker ps -a | grep formr_app | wc -l ) -gt 0 ]; then
+if [[ $(sudo docker inspect -f '{{.State.Running}}' formr_app) == "true" ]]; then
   echo "formr_app already running ... \n"
 else
   echo "Starting formr_app ....\n"
@@ -90,10 +93,6 @@ sudo docker compose restart formr_app
 # sudo touch etc/opencpu/Renviron
 
 sudo docker compose up -d
-
-# chown files and tmp folder
-sudo chown -R www-data:www-data ./formr_app/formr/
-sudo chown -R $USER:$USER ./formr_app/formr/config
 
 # create superadmin
 docker exec -it formr_app php bin/add_user.php -e ${FORMR_EMAIL} -p $FORMR_PASSWORD -l "100"
