@@ -1,11 +1,9 @@
 #!/bin/bash
 
-echo "Stop and destroy any containers"
-if [ $( sudo docker ps -a | wc -l ) -gt 0 ]; then
-    sudo docker compose down
-fi
-
+echo "Overwrite .env file"
 cp .env.example .env
+echo "Stop and destroy any containers"
+sudo docker compose down
 
 # 
 echo "===================================================================="

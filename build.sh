@@ -26,11 +26,13 @@ fi
 source .env
 
 # Docker compose up formr_app
-if [[ $(sudo docker inspect -f '{{.State.Running}}' formr_app) == "true" ]]; then
-  echo "formr_app already running ... \n"
+container_status=$(sudo docker inspect -f '{{.State.Status}}' formr_app 2>/dev/null)
+
+if [[ "$container_status" == "running" ]]; then
+    echo "formr_app already running ..."
 else
-  echo "Starting formr_app ....\n"
-  sudo docker compose up -d formr_app
+    echo "Starting formr_app, formr_db, opencpu ...."
+    sudo docker compose up -d formr_db opencpu formr_app
 fi
 
 # Replace domain name in sample apache config with actual domain name and restart container
