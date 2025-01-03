@@ -97,6 +97,7 @@ sudo docker compose restart formr_app
 sudo docker compose up -d
 
 # create superadmin
+docker exec -it formr_app php bin/initialize.php
 docker exec -it formr_app php bin/add_user.php -e ${FORMR_EMAIL} -p $FORMR_PASSWORD -l "100"
 
 echo "============================================================"

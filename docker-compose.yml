@@ -23,6 +23,7 @@ services:
     volumes:
       - ./formr_app/formr:/formr
       - ./formr_app/apache/sites-enabled:/etc/apache2/sites-enabled/ #apache vhost conf
+      - ./formr_app/formr.php.ini:/usr/local/etc/php/conf.d/custom.php.ini # php.ini
     restart: unless-stopped
     depends_on:
       - formr_db
