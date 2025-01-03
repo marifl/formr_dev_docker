@@ -16,7 +16,6 @@ This is just an attempt to make it easier to start developing formr. This setup 
 
 ### 1. Copy and prepare files
 - Run `./setup.sh`
-- This will generate some random passwords for you automatically.
 
 ### 2. Configure Database and Domain names
 - Open `.env` and fill in the correct configuration items
