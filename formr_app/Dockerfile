@@ -24,6 +24,8 @@ COPY docker-entrypoint.sh /docker-entrypoint.sh
 # Remove this when apache config is added to repository
 # COPY apache.conf /apache.conf
 
+# Install Xdebug
+RUN pecl install xdebug && docker-php-ext-enable xdebug
 
 ENTRYPOINT [ "/docker-entrypoint.sh" ]
 

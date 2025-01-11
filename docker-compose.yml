@@ -18,6 +18,9 @@ services:
       - TZ=${TIMEZONE}
       - FORMR_TAG=${FORMR_TAG} #required
       - FORMR_APACHE_CONFIG=${FORMR_APACHE_CONFIG}
+      - XDEBUG_MODE=debug,develop
+      - XDEBUG_CONFIG="client_host=host.docker.internal client_port=9003 idekey=VSCODE"
+      - PHP_IDE_CONFIG="serverName=Docker"
 #    links:
 #      - formr_db
     volumes:
