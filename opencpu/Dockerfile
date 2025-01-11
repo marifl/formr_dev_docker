@@ -1,4 +1,4 @@
-FROM opencpu/base:v2.2.11-2
+FROM opencpu/base:v2.2.12
 
 # Install dependencies
 RUN apt-get update
