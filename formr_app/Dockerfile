@@ -27,5 +27,11 @@ COPY docker-entrypoint.sh /docker-entrypoint.sh
 # Install Xdebug
 RUN pecl install xdebug && docker-php-ext-enable xdebug
 
-ENTRYPOINT [ "/docker-entrypoint.sh" ]
+# Install cron
+RUN apt-get install -y cron
+
+COPY ./formr/config/formr_crontab /etc/cron.d/formr
+RUN crontab -u root /etc/cron.d/formr
+
+CMD service cron start && apachectl -DFOREGROUND
 
