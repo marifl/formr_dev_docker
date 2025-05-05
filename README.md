@@ -166,9 +166,9 @@ docker compose logs -f <service-name>
 4. Push to the branch
 5. Create a Pull Request
 
-## License
+## Notes
 
-[Specify your project's license here]
+just in case you wondered: All passwords, mail adresses, user names etc. that may be scattered around some files are randomly generated and don't actually exist. Don't be like me - use a proper .env instead of scattering stuff all around and not remembering where you left what...
 
 ## Additional Resources
 
