@@ -1,29 +1,91 @@
 # formr Development Environment Setup
 
-This guide provides instructions for setting up the formr development environment using Docker.
+This guide provides step-by-step instructions for setting up the formr development environment using Docker, even if you're not familiar with technical tools.
 
 > **IMPORTANT**: This setup has only been tested on macOS with Apple Silicon (M4) processors. Compatibility with other systems is not guaranteed.
 
-## Prerequisites
+## Complete Installation Guide for Beginners
 
-- **Docker Desktop**: Version 4.15.0 or later
-  - Download from [Docker Desktop Website](https://www.docker.com/products/docker-desktop/)
-  - Ensure Rosetta 2 translation is enabled for Apple Silicon Macs
+### Step 1: Install Homebrew (Package Manager)
 
-## Quick Start
+Homebrew is a tool that helps you install other software. Open Terminal (press Cmd+Space, type "Terminal", and press Enter), then copy and paste this command:
 
-1. Clone the repository:
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+Press Enter and follow the on-screen instructions. You may be asked to enter your password.
+
+After installation, you might need to add Homebrew to your PATH. If prompted, copy and paste the suggested commands.
+
+### Step 2: Install Git (Version Control)
+
+Git is a tool that helps manage code. Install it using Homebrew by typing:
+
+```bash
+brew install git
+```
+
+Verify the installation by typing:
+
+```bash
+git --version
+```
+
+You should see the Git version number.
+
+### Step 3: Install Docker Desktop
+
+Docker Desktop allows you to run the formr application in a container:
+
+1. Download Docker Desktop from [Docker Desktop Website](https://www.docker.com/products/docker-desktop/)
+2. Double-click the downloaded file and follow the installation wizard
+3. After installation, open Docker Desktop from your Applications folder
+4. When prompted, ensure Rosetta 2 translation is enabled for Apple Silicon Macs
+5. Go to Docker Desktop Preferences > Resources and allocate at least 4GB of RAM
+
+### Step 4: Install mkcert (for HTTPS)
+
+mkcert helps create secure connections for local development:
+
+```bash
+brew install mkcert
+mkcert -install
+```
+
+You may be asked for your password during the installation.
+
+### Step 5: Clone the Repository
+
+1. Create a folder where you want to store the project:
+```bash
+mkdir -p ~/Projects
+cd ~/Projects
+```
+
+2. Clone (download) the repository:
 ```bash
 git clone <repository-url>
 cd <repository-directory>
 ```
+Replace `<repository-url>` with the actual URL of the repository, and `<repository-directory>` with the name of the directory created by the clone command.
 
-2. Run the setup wrapper script:
+### Step 6: Run the Setup Script
+
+Run the setup wrapper script which will guide you through the rest of the installation:
+
 ```bash
 ./setup_wrapper.sh
 ```
 
-> **IMPORTANT**: Always use `setup_wrapper.sh` for installation and configuration. This interactive script handles all necessary setup steps including environment configuration, Docker setup, CoreDNS configuration, and HTTPS setup.
+Follow the interactive prompts in the script. This will:
+- Set up environment configuration
+- Configure Docker
+- Set up CoreDNS for network routing
+- Configure HTTPS
+- Start the application
+
+> **IMPORTANT**: Always use `setup_wrapper.sh` for installation and configuration. This interactive script handles all necessary setup steps.
 
 ## Project Overview
 
@@ -71,20 +133,30 @@ docker compose logs -f <service-name>
 
 ## Troubleshooting
 
-1. **Database Connection Issues**
+1. **Homebrew Installation Issues**
+   - If you see "command not found" errors after installing Homebrew, you may need to restart your Terminal or add Homebrew to your PATH
+   - Follow the instructions shown after Homebrew installation
+
+2. **Docker Installation Issues**
+   - Ensure virtualization is enabled in your Mac's security settings
+   - For Apple Silicon Macs, ensure Rosetta 2 is installed
+
+3. **Database Connection Issues**
    - Ensure MariaDB container is fully initialized
    - Check credentials in `.env` file
    - Verify network configurations
 
-2. **Spreadsheet Handling**
+4. **Spreadsheet Handling**
    - PHP intl extension is required for Unicode normalization
    - Verify file upload permissions
 
-3. **Local Domain Resolution**
+5. **Local Domain Resolution**
    - If formr.local doesn't resolve, add it to your hosts file:
      ```
      127.0.0.1 formr.local
      ```
+   - To edit hosts file: `sudo nano /etc/hosts`
+   - Add the line above, press Ctrl+O to save, then Ctrl+X to exit
 
 ## Contributing
 
