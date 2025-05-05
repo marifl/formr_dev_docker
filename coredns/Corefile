@@ -1,0 +1,11 @@
+. {
+    forward . 8.8.8.8 8.8.4.4
+    cache
+}
+
+formr.local:53 {
+    file /zones/formr.local.db
+    reload 5s
+    log
+    errors
+}

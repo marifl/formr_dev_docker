@@ -1,37 +1,42 @@
-FROM php:8.2.2-apache
+FROM php:8.2-apache
 
-# Install System & PHP Dependencies
-RUN apt-get update 
-RUN apt-get upgrade -y
-RUN apt-get install -y pandoc libzip-dev libxml2-dev libpng-dev libonig-dev libsodium-dev libcurl4-openssl-dev git unzip
-RUN apt-get install -y libapache2-mod-xsendfile
-RUN docker-php-ext-install zip xml gd intl mbstring curl pdo pdo_mysql
-RUN docker-php-ext-configure pcntl --enable-pcntl && docker-php-ext-install pcntl
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libicu-dev \
+    libpng-dev \
+    libzip-dev \
+    zip \
+    unzip \
+    git \
+    curl \
+    libxml2-dev \
+    libapache2-mod-xsendfile \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) gd mysqli pdo pdo_mysql zip soap intl
 
-# Install Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-
-WORKDIR /formr
-
-RUN a2enmod rewrite headers ssl xsendfile proxy proxy_http proxy_balancer lbmethod_byrequests
-
-EXPOSE 80
-
-#COPY config-examples /config-examples
-
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-
-# Remove this when apache config is added to repository
-# COPY apache.conf /apache.conf
+# Configure Apache and enable required modules
+RUN a2enmod xsendfile rewrite headers ssl && \
+    # Need rewrite module for HTTP to HTTPS redirection
+    a2enmod rewrite && \
+    # Create directory for formr
+    mkdir -p /formr && \
+    chown -R www-data:www-data /formr && \
+    # Configure Apache
+    sed -i 's!/var/www/html!/formr!g' /etc/apache2/apache2.conf && \
+    echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
 # Install Xdebug
-RUN pecl install xdebug && docker-php-ext-enable xdebug
+RUN pecl install xdebug-3.2.2 \
+    && docker-php-ext-enable xdebug
 
-# Install cron
-RUN apt-get install -y cron
+# Set working directory
+WORKDIR /formr
 
-COPY ./formr/config/formr_crontab /etc/cron.d/formr
-RUN crontab -u root /etc/cron.d/formr
+# Configure PHP
+RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
 
-CMD service cron start && apachectl -DFOREGROUND
+EXPOSE 80 443
 
+CMD ["apache2-foreground"]

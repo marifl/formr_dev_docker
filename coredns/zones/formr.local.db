@@ -1,0 +1,11 @@
+$ORIGIN formr.local.
+$TTL 60 ; 1 minute default TTL
+@       IN SOA  localhost. root.localhost. (
+                2025050515 ; Serial YYYYMMDDHH
+                60         ; Refresh (1 minute)
+                60         ; Retry (1 minute)
+                604800     ; Expire (1 week)
+                60 )       ; Negative Cache TTL (1 minute)
+        IN NS   localhost. ; Define the nameserver (can be arbitrary for local setup)
+        IN A    127.0.0.1  ; Default IP for formr.local
+*       IN A    127.0.0.1  ; Default IP for *.formr.local (wildcard)

@@ -1,0 +1,19 @@
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+
+log:
+  level: INFO # (DEBUG for troubleshooting)
+
+entryPoints:
+  web:
+    address: ":80"
+  # Removed websecure entrypoint for HTTPS
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false # Only expose containers with labels
+    network: formr_bridge_net # Specify the network Traefik connects to
+
+# Removed tls: section as we are doing HTTP only

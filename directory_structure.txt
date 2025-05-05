@@ -1,0 +1,19 @@
+You'll need to create these directories and files:
+
+1. formr_app/
+   - Dockerfile
+   - formr/           (will contain the formr application code)
+   - apache/sites-enabled/  (for Apache virtual host configurations)
+   - formr.php.ini    (PHP configuration)
+
+2. php_daemon/
+   - Dockerfile       (for the queue processor containers)
+
+3. opencpu/
+   - Dockerfile
+   - conf/server.conf
+   - conf/server.conf.d/
+
+4. mysql/
+   - data/           (will store the database files)
+   - dbinitial/      (for initial database setup scripts)

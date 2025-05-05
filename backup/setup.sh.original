@@ -1,0 +1,26 @@
+#!/bin/bash
+
+echo "This script will set up the formr development environment."
+read -p "Do you want to overwrite your .env file with .env.example? (y/N): " confirm
+if [[ "$confirm" =~ ^[Yy]$ ]]; then
+    echo "Overwriting .env file..."
+    cp .env.example .env
+    echo "Done. You may want to review the .env file to customize your settings."
+else
+    echo "Skipping .env overwrite. Using existing .env file if present."
+    # Create .env from example if it doesn't exist
+    if [ ! -f ".env" ]; then
+        echo "No .env file found. Creating one from .env.example..."
+        cp .env.example .env
+    fi
+fi
+
+echo "Stopping and removing any existing containers..."
+docker compose down
+# 
+echo "===================================================================="
+echo "|                                                                   |"
+echo "| 1. Configure entries in .env file                                 |"
+echo "| 2. Run ./build.sh                                                 |"
+echo "|                                                                   |"
+echo "===================================================================="

@@ -1,3 +1,4 @@
+# Remove version as it's obsolete
 x-logging: &default-logging
   options:
     max-size: "100m"
@@ -9,7 +10,7 @@ services:
 
   formr_app:
     build:
-      context: formr_app
+      context: ./formr_app
       dockerfile: Dockerfile
     container_name: formr_app
     hostname: formr_app
@@ -20,45 +21,60 @@ services:
       - XDEBUG_MODE=debug,develop
       - XDEBUG_CONFIG="client_host=host.docker.internal client_port=9003 idekey=VSCODE"
       - PHP_IDE_CONFIG="serverName=Docker"
-#    links:
-#      - formr_db
     volumes:
-      - ./formr_app/formr:/formr
+      - ./formr_app:/formr
       - ./formr_app/apache/sites-enabled:/etc/apache2/sites-enabled/ #apache vhost conf
       - ./formr_app/formr.php.ini:/usr/local/etc/php/conf.d/custom.php.ini # php.ini
+      - ./certs/formr.cert.pem:/etc/ssl/certs/formr.cert.pem:ro
+      - ./certs/formr.key.pem:/etc/ssl/private/formr.key.pem:ro
     restart: unless-stopped
     depends_on:
-      - formr_db
-      - opencpu
+      formr_db:
+        condition: service_healthy
+      opencpu:
+        condition: service_started
     ports:
       - "80:80"
+      - "443:443"
     networks:
       - all
     logging: *default-logging
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "-k", "https://localhost/"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 3
 
 
   # mysql database (Configure in formr_app/formr/config/settings.php)
 
   formr_db:
-    image: mariadb:latest
+    image: mariadb:11.7.2
     container_name: formr_db
     hostname: formr_db
-    env_file:
-      - '.env'
-    expose:
-      - "3306"
+    environment:
+      - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
+      - MARIADB_PASSWORD=${MARIADB_PASSWORD}
+      - MARIADB_USER=${MARIADB_USER}
+      - MARIADB_DATABASE=${MARIADB_DATABASE}
+      - MARIADB_ROOT_HOST=${MARIADB_ROOT_HOST}
+      - TZ=${TIMEZONE}
+    ports:
+      - "3306:3306"
     volumes:
       - ./mysql/data:/var/lib/mysql
       - ./mysql/dbinitial:/docker-entrypoint-initdb.d
-
-    # (this is just an example, not intended to be a production configuration)
-    command: >
-      bash -c "
-      /usr/local/bin/docker-entrypoint.sh  --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     restart: always
     networks:
       - all
     logging: *default-logging
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "--silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
   
   formrmailqueue:
     build:
@@ -73,7 +89,8 @@ services:
     command: php bin/queue.php -t Email
     restart: always
     depends_on:
-      - formr_app
+      formr_app:
+        condition: service_started
     networks:
       - all
 
@@ -90,7 +107,8 @@ services:
     command: php bin/queue.php -t UnitSession
     restart: always
     depends_on:
-      - formr_app
+      formr_app:
+        condition: service_started
     networks:
       - all
 
@@ -101,7 +119,6 @@ services:
     container_name: opencpu
     hostname: opencpu
     volumes:
-#      - ./opencpu/opencpu_library:/usr/local/lib/R/site-library
       - ./opencpu/conf/server.conf:/etc/opencpu/server.conf
       - ./opencpu/conf/server.conf.d:/etc/opencpu/server.conf.d
     environment:
@@ -112,6 +129,11 @@ services:
       - all
     restart: always
     logging: *default-logging
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/ocpu/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 networks:
   all:

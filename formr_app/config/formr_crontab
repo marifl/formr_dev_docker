@@ -1,0 +1,32 @@
+# Setting environment variables
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+SHELL=/bin/bash
+MAILTO=""
+
+# Formr application maintenance tasks
+# Run every 10 minutes
+*/10 * * * * root php /formr/www/maintenance/run_scheduler.php > /dev/null 2>&1
+
+# Session cleanup - daily at 1 AM
+0 1 * * * root php /formr/www/maintenance/cleanup_sessions.php > /dev/null 2>&1
+
+# Clean temporary files - daily at 2 AM
+0 2 * * * root php /formr/www/maintenance/cleanup_temp_files.php > /dev/null 2>&1
+
+# Database optimization - weekly on Sunday at 3 AM
+0 3 * * 0 root php /formr/www/maintenance/optimize_db.php > /dev/null 2>&1
+
+# Backup database - daily at 4 AM
+0 4 * * * root php /formr/www/maintenance/backup_db.php > /dev/null 2>&1
+
+# Log rotation - daily at 5 AM
+0 5 * * * root php /formr/www/maintenance/rotate_logs.php > /dev/null 2>&1
+
+# Remove old exports - weekly on Monday at 6 AM
+0 6 * * 1 root php /formr/www/maintenance/cleanup_exports.php > /dev/null 2>&1
+
+# Send email reminders - every hour
+0 * * * * root php /formr/www/maintenance/send_reminders.php > /dev/null 2>&1
+
+# Empty line at end of file is required for cron
+

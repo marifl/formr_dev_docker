@@ -1,52 +1,97 @@
-# formr dockerized development environment
+# formr Development Environment Setup (Apple Silicon)
 
-This is just an attempt to make it easier to start developing formr. This setup is not suitable for production. It permits arbitrary code execution on OpenCPU, the database is not encrypted, the HTTP connection is not encrypted, etc.
+This guide provides instructions for setting up the formr development environment on Apple Silicon (M1/M2) Macs using Docker.
 
-### 0. Requirements
-- [Docker & Docker compose](https://docs.docker.com/compose/install) (docker compose minimum version is 2)
+## System Requirements
 
-## Short version
-- Clone this repository
-- Run `./setup.sh` (careful, this is destructive)
-- Configure values in `.env` (not needed for a quick try)
-- Run `./build.sh`
-- Configure `formr_app/formr/config/settings.php`, especially the email account used for email verification. Run `docker compose restart` after file changed.
+- macOS running on Apple Silicon (M1/M2)
+- Docker Desktop for Apple Silicon
+- Git
 
-## Long Version
+## PHP Extensions & Dependencies
 
-### 1. Copy and prepare files
-- Run `./setup.sh`
+The following PHP extensions are required and installed in the Docker container:
 
-### 2. Configure Database and Domain names
-- Open `.env` and fill in the correct configuration items
-- `.env` config item :
-````
-MARIADB_ROOT_PASSWORD -> Mysql password of root, by default "generate-password"
-MARIADB_DATABASE			-> Mysql database name, default = formr_db
-MARIADB_USER				  -> Mysql database user, default = formr_user
-MARIADB_PASSWORD 			-> Mysql database password of user MARIADB_USER, by default "generate-password"
+- gd (Image processing)
+- mysqli (MySQL database connectivity)
+- pdo/pdo_mysql (Database abstraction)
+- zip (File compression)
+- soap (SOAP web services)
+- intl (Internationalization)
+- xml (XML processing)
 
-MAIN_DOMAIN           -> The main domain of your formr instance.
-FORMR_DOMAIN			    -> Domain of formr_app. Can fill with multiple domain with separated by comma (,). Default value = localhost
-OPENCPU_DOMAIN			  -> (Sub)domain for opencpu. Default value = localhost:8080
+Dependencies for these extensions:
+- libfreetype6-dev (for GD)
+- libjpeg62-turbo-dev (for GD)
+- libicu-dev (for Intl)
+- libpng-dev (for GD)
+- libzip-dev (for ZIP)
+- libxml2-dev (for XML/SOAP)
 
-FORMR_EMAIL			      -> Email for the first superadmin
-FORMR_PASSWORD        -> Default superadmin password, by default "generate-password"
+## Network Configuration
 
-FORMR_TAG			        -> formr version or branch. Please check on this link https://github.com/rubenarslan/formr.org/tags. Default value = feature/dockerprep
+The development environment uses:
+- Traefik as reverse proxy (HTTP only setup)
+- dnsmasq for local domain resolution
+- Apache with mod_xsendfile enabled
 
-TIMEZONE              -> defaults to Europe/Berlin
+### Local Domain
 
-````
+The application is accessible at:
+```
+http://formr.local
+```
 
-### 3. Build containers and Install initial schema
-- Run `./build.sh`
-- This process will be create a mysql database, pull formr project from github, create and run the containers for OpenCPU, formr and its daemons:
-  - formr_app  = container of formr application
-  - formr_db   = container of mysql db
-  - opencpu    = container of opencpu
-  - formrsessionqueue = daemon that takes care of participants moving along in the run
-  - formrmailqueue = daemon that takes care of email sending
+## Quick Start
 
-### 4. File configuration
-Open `formr_app/formr/config/settings.php`. Configure as needed, especially the email account used for email verification.
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd <repository-directory>
+```
+
+2. Start the containers:
+```bash
+docker-compose up -d
+```
+
+3. Initialize the database:
+```bash
+./setup.sh
+```
+
+## Container Architecture
+
+The setup consists of multiple containers:
+- **formr_app**: Main PHP/Apache application
+- **mysql**: Database server
+- **opencpu**: R computing environment
+- **php_daemon**: Background task processor
+- **traefik**: Reverse proxy
+- **dnsmasq**: Local DNS resolver
+
+## Known Issues & Solutions
+
+1. If you encounter SSL-related issues:
+   - The current setup uses HTTP for local development
+   - SSL certificates are not required
+
+2. Database connection issues:
+   - Ensure the MySQL container is fully initialized before accessing the application
+   - Check the database credentials in the .env file
+
+3. Spreadsheet handling:
+   - The PHP intl extension is required for Unicode normalization
+   - Ensure file permissions are correct for uploads
+
+## Development Notes
+
+- Container rebuilding: `docker-compose build <service-name>`
+- Viewing logs: `docker-compose logs -f <service-name>`
+- Accessing containers: `docker-compose exec <service-name> bash`
+
+## Additional Resources
+
+- [Docker Documentation](https://docs.docker.com)
+- [Traefik Documentation](https://doc.traefik.io/traefik/)
+- [PHP Extensions Documentation](https://www.php.net/manual/en/extensions.php)

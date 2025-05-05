@@ -1,0 +1,6 @@
+formr.local:53 {
+    file /zones/formr.local.db
+    reload 60s
+    log
+    errors
+}

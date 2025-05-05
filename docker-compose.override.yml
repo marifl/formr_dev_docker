@@ -1,0 +1,9 @@
+services:
+  formr_db:
+    environment:
+      MARIADB_ROOT_PASSWORD: hkv0mg2xUYYeNh3N
+      MARIADB_PASSWORD: D6bQ9Xz3HgN5cA7J
+      MARIADB_USER: formr_user
+      MARIADB_DATABASE: formr_db
+      MARIADB_ROOT_HOST: '%'
+    restart: always

@@ -1,112 +1,150 @@
-#!/bin/bash
-err(){
-    echo "E: $*" >>/dev/stderr
+#!/usr/bin/env bash
+#
+# build.sh — build and launch formr Docker development environment.
+#
+# Usage: ./build.sh
+#
+# Runs docker compose build and docker compose up -d.
+
+set -e
+
+# Define color functions for better user feedback
+GREEN="\033[0;32m"
+RED="\033[0;31m"
+YELLOW="\033[0;33m"
+BLUE="\033[0;34m"
+NORMAL="\033[0m"
+
+print_green() { echo -e "${GREEN}$*${NORMAL}"; }
+print_red() { echo -e "${RED}$*${NORMAL}"; }
+print_yellow() { echo -e "${YELLOW}$*${NORMAL}"; }
+print_blue() { echo -e "${BLUE}$*${NORMAL}"; }
+
+# Function to check if sync_config.sh is available
+check_sync_config() {
+  if [ ! -f "./sync_config.sh" ]; then
+    print_yellow "Warning: sync_config.sh not found. Skipping configuration check."
+    return 1
+  fi
+  return 0
 }
 
-find_replace_in_file() {
-    filename=$1
-    search=$2
-    replace=$3
-    matching_line=$(grep -n -m 1 -h -E $search $filename | cut -d: -f1)
-    echo "searched $filename, replaced $search, on line $matching_line with $replace"
-    # If the matching line exists, replace it with the new line
-    if [ ! -z "$matching_line" ]; then
-        # Use a backup extension, e.g., .bak
-        sed -i.bak "${matching_line}s#.*#$replace#" $filename
-        # Remove the backup file
-        rm "${filename}.bak"
-    fi
+# Function to check for configuration mismatches
+check_config_mismatch() {
+  local mismatch=false
+  local env_db_pass=""
+  local docker_override_db_pass=""
+  local settings_db_pass=""
+  
+  # Check if files exist
+  if [ ! -f ".env" ] || [ ! -f "docker-compose.override.yml" ] || [ ! -f "formr_app/formr/config/settings.php" ]; then
+    print_yellow "Warning: One or more configuration files missing. Run sync_config.sh to generate them."
+    return 0  # Return true (mismatch found)
+  fi
+  
+  # Extract database password from .env
+  env_db_pass=$(grep -E "^MARIADB_PASSWORD=" ".env" | sed -E "s/^MARIADB_PASSWORD=//" | tr -d '"')
+  
+  # Extract database password from docker-compose.override.yml
+  docker_override_db_pass=$(grep "MARIADB_PASSWORD:" "docker-compose.override.yml" | awk '{print $2}')
+  
+  # Extract database password from settings.php
+  settings_db_pass=$(grep -A2 "'password'" "formr_app/formr/config/settings.php" | head -1 | awk -F "=> " '{print $2}' | sed "s/'//g" | sed 's/,.*//')
+  
+  # Check for placeholder passwords
+  if [ "$env_db_pass" = "generate-password" ]; then
+    print_yellow "Warning: Placeholder password found in .env"
+    return 0  # Return true (mismatch found)
+  fi
+  
+  # Check for password mismatches
+  if [ -n "$env_db_pass" ] && [ -n "$docker_override_db_pass" ] && [ "$env_db_pass" != "$docker_override_db_pass" ]; then
+    print_yellow "Warning: Database password in .env doesn't match docker-compose.override.yml"
+    return 0  # Return true (mismatch found)
+  fi
+  
+  if [ -n "$env_db_pass" ] && [ -n "$settings_db_pass" ] && [ "$env_db_pass" != "$settings_db_pass" ]; then
+    print_yellow "Warning: Database password in .env doesn't match settings.php"
+    return 0  # Return true (mismatch found)
+  fi
+  
+  return 1  # Return false (no mismatch found)
 }
 
-if [[ ! -f ".env" || ! -f "docker-compose.yml" ]]; then
-    err ".env file or docker-compose.yml file not found"
-    exit 1
-fi
+# Function to prompt user with yes/no question
+confirm() {
+  local prompt="$1"
+  local default="${2:-n}"
+  local response
+  
+  if [ "$default" = "y" ]; then
+    prompt="$prompt [Y/n]: "
+  else
+    prompt="$prompt [y/N]: "
+  fi
+  
+  read -p "$prompt" response
+  response="${response:-$default}"
+  
+  if echo "$response" | grep -iq "^y"; then
+    return 0
+  else
+    return 1
+  fi
+}
 
-source .env
-
-# Docker compose up formr_app
-container_status=$(docker inspect -f '{{.State.Status}}' formr_app 2>/dev/null)
-
-if [[ "$container_status" == "running" ]]; then
-    echo "formr_app already running ..."
-else
-    echo "Starting formr_app, formr_db, opencpu ...."
-    docker compose up -d formr_db opencpu formr_app
-fi
-
-# Replace domain name in sample apache config with actual domain name and restart container
-echo "Waiting for project formr to be ready / downloaded "
-while [[ ! -f "./formr_app/formr/config/settings.php"  ]]
-do
-sleep 2
-done
-
-#copy schema.sql from repository
-rm -Rf mysql/dbinitial/*
-while [[ ! -f "./formr_app/formr/sql/schema.sql"  ]]
-do
-sleep 2
-done
-cp -f formr_app/formr/sql/schema.sql mysql/dbinitial/
-
-echo "Configure domain name (see .env FORMR_DOMAIN) in apache config"
-find_replace_in_file "./formr_app/apache/sites-enabled/formr.conf" "Define\s+FORMR_DOMAIN" "Define FORMR_DOMAIN ${FORMR_DOMAIN}"
-#find_replace_in_file "./etc/formr/apache.subdomain.conf" "Define\s+FORMR_DOMAIN" "Define FORMR_DOMAIN ${FORMR_DOMAIN}"
-
-echo "Enter values in formr configuration"
-formr_config="./formr_app/formr/config/settings.php"
-find_replace_in_file $formr_config "'host'\s*=>\s*'localhost'" "\t'host' => 'formr_db',"
-find_replace_in_file $formr_config "'login'\s*=>\s*'user'" "\t'login' => '${MARIADB_USER}',"
-find_replace_in_file $formr_config "'password'\s*=>\s*'password'" "\t'password' => '${MARIADB_PASSWORD}',"
-find_replace_in_file $formr_config "'database'\s*=>\s*'database'" "\t'database' => '${MARIADB_DATABASE}',"
-find_replace_in_file $formr_config "'encoding'\s*=>\s*" "\t'encoding' => 'utf8mb4',"
-
-find_replace_in_file $formr_config "'domain'\s=>\s'.formr.org'" "\t'domain' => '${FORMR_DOMAIN}',"
-find_replace_in_file $formr_config "'public_url'\s=>" "\t'public_url' => 'http://${OPENCPU_DOMAIN}',"
-
-find_replace_in_file $formr_config "'protocol'\s=>" "'protocol' => 'http://',"
-find_replace_in_file $formr_config "use_study_subdomains" "\$settings['use_study_subdomains'] = false;"
-find_replace_in_file $formr_config "doc_root" "		'doc_root' => 'localhost/',"
-find_replace_in_file $formr_config "\$settings['study_domain']" "'\$study_domain' = 'localhost',"
-
-
-
-if [ ! -f "mysql/dbinitial/schema.sql" ]
-then
-    docker cp formr_app:/formr/sql/schema.sql ./mysql/dbinitial/
+# Check and offer to sync configurations
+if check_sync_config; then
+  if check_config_mismatch; then
+    print_red "Configuration mismatches detected!"
+    print_yellow "Your configuration files (.env, docker-compose.override.yml, settings.php) are not in sync."
+    print_yellow "This may cause issues when running the application."
     
-    find_replace_in_file "mysql/dbinitial/schema.sql" "NOT\sEXISTS\sformr" "CREATE DATABASE IF NOT EXISTS ${MARIADB_DATABASE} CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;"
-    find_replace_in_file "mysql/dbinitial/schema.sql" "USE\sformr" "USE ${MARIADB_DATABASE};"
-    docker compose up -d formr_db
-    while [[ $(docker inspect -f '{{.State.Running}}' formr_db) != "true" ]]
-    do
-    echo "Waiting for formr_db to start running "
-    sleep 2
-    done
-    docker exec -i formr_db sh -c "exec mariadb -uroot -p${MARIADB_ROOT_PASSWORD}" < mysql/dbinitial/schema.sql
-else
-    ./apply_patches.sh
+    if confirm "Would you like to run sync_config.sh to fix these issues before building?" "y"; then
+      print_blue "Running sync_config.sh with --force option..."
+      ./sync_config.sh --force
+      print_green "Configuration synchronized successfully."
+    else
+      print_yellow "Continuing with mismatched configurations. This might cause runtime issues."
+    fi
+  else
+    print_green "Configuration files are in sync. Proceeding with build."
+  fi
 fi
 
-docker compose up -d formr_db  
-docker compose restart formr_app
+print_blue "Building Docker images…"
+docker compose build
 
-# Create opencpu config files
-# mkdir -p etc/opencpu
-# touch etc/opencpu/Rprofile
-# touch etc/opencpu/Renviron
-
+print_blue "Starting Docker containers in detached mode…"
 docker compose up -d
 
-# create superadmin
-docker exec -it formr_app php bin/initialize.php
-docker exec -it formr_app php bin/add_user.php -e ${FORMR_EMAIL} -p $FORMR_PASSWORD -l "100"
+print_green "Docker environment is up!"
+echo "To check status: docker compose ps"
+echo "To stop:         docker compose down"
 
-echo "============================================================"
-echo "|                                                          |"
-echo "| TODO:                                                    |"
-echo "| 1. Configure formr in formr/config/settings.php          |"
-echo "| 2. Test and report any problems                          |"
-echo "|                                                          |"
-echo "============================================================"
+echo ""
+echo "====================== LOGIN INFORMATION ======================"
+echo "FormR Application URL: http://localhost"
+echo "OpenCPU URL:           http://localhost:8080"
+echo ""
+echo "Admin Login Credentials:"
+echo "Email:    rform@researchmixtapes.com"
+echo "Password: VvscXmQKghIln2Xj"
+echo "=============================================================="
+echo ""
+
+print_blue "Waiting for FormR application to initialize..."
+echo "This may take a few seconds..."
+sleep 10
+
+print_blue "Creating admin user from environment variables..."
+# Extract credentials from .env
+ADMIN_EMAIL=$(grep -E "^FORMR_EMAIL=" ".env" | sed -E "s/^FORMR_EMAIL=//" | tr -d '"')
+ADMIN_PASSWORD=$(grep -E "^FORMR_PASSWORD=" ".env" | sed -E "s/^FORMR_PASSWORD=//" | tr -d '"')
+
+# Create the admin user with level 2 (superadmin)
+docker exec -it formr_app bash -c "cd /formr && php bin/add_user.php -e $ADMIN_EMAIL -p $ADMIN_PASSWORD -l 2"
+
+print_green "Admin user created successfully!"
+echo "You can now log in with the credentials shown above."
+echo ""
